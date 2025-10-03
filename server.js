@@ -163,21 +163,23 @@ app.patch('/tasks/:id', async (req, res) => {
   }
 });
 
-// GET /roadmaps/:id/tasks - fetch tasks for a roadmap
-app.get('/roadmaps/:id/tasks', async (req, res) => {
+app.get('/roadmaps/:id/tasks', (req, res) => {
   const { id } = req.params;
 
-  try {
-    const tasks = await db.all(
-      'SELECT * FROM tasks WHERE roadmap_id = ?',
-      [id]
-    );
-    res.json(tasks);
-  } catch (err) {
-    console.error('Error fetching tasks:', err);
-    res.status(500).json({ error: 'Failed to fetch tasks' });
-  }
+  db.all(
+    'SELECT * FROM tasks WHERE roadmap_id = ?',
+    [id],
+    (err, rows) => {
+      if (err) {
+        console.error('Error fetching tasks:', err);
+        res.status(500).json({ error: 'Failed to fetch tasks' });
+      } else {
+        res.json(rows);
+      }
+    }
+  );
 });
+
 
 
 // --- Start server ---
