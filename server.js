@@ -143,47 +143,34 @@ app.get('/roadmaps', (req, res) => {
 // PATCH /tasks/:id - toggle a task's completion
 app.patch('/tasks/:id', (req, res) => {
   const { id } = req.params;
-  const { completed } = req.body; // expect true/false in JSON
+  const { completed } = req.body; // expect true/false
 
-  db.run(
-    'UPDATE tasks SET completed = ? WHERE id = ?',
-    [completed ? 1 : 0, id],
-    function (err) {
-      if (err) {
-        console.error('Error updating task:', err.message);
-        res.status(500).json({ error: 'Failed to update task' });
-      } else {
-        // fetch the updated row to return
-        db.get('SELECT * FROM tasks WHERE id = ?', [id], (err, row) => {
-          if (err) {
-            console.error('Error fetching updated task:', err.message);
-            res.status(500).json({ error: 'Failed to fetch updated task' });
-          } else {
-            res.json(row);
-          }
-        });
-      }
-    }
-  );
+  try {
+    const stmt = db.prepare('UPDATE tasks SET completed = ? WHERE id = ?');
+    stmt.run(completed ? 1 : 0, id);
+
+    const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    res.json(updated);
+  } catch (err) {
+    console.error('Error updating task:', err.message);
+    res.status(500).json({ error: 'Failed to update task' });
+  }
 });
 
 // GET /roadmaps/:id/tasks - fetch tasks for a roadmap
 app.get('/roadmaps/:id/tasks', (req, res) => {
   const { id } = req.params;
 
-  db.all(
-    'SELECT * FROM tasks WHERE roadmap_id = ?',
-    [id],
-    (err, rows) => {
-      if (err) {
-        console.error('Error fetching tasks:', err.message);
-        res.status(500).json({ error: 'Failed to fetch tasks' });
-      } else {
-        res.json(rows);
-      }
-    }
-  );
+  try {
+    const stmt = db.prepare('SELECT * FROM tasks WHERE roadmap_id = ?');
+    const tasks = stmt.all(id);
+    res.json(tasks);
+  } catch (err) {
+    console.error('Error fetching tasks:', err.message);
+    res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
 });
+
 
 // --- Start server ---
 app.listen(PORT, () => {
