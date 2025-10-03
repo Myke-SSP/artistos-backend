@@ -140,6 +140,45 @@ app.get('/roadmaps', (req, res) => {
   res.json(JSON.parse(row.json));
 });
 
+// PATCH /tasks/:id - toggle a task's completion
+app.patch('/tasks/:id', async (req, res) => {
+  const { id } = req.params;
+  const { completed } = req.body; // expect true/false in JSON
+
+  try {
+    await db.run(
+      'UPDATE tasks SET completed = ? WHERE id = ?',
+      [completed ? 1 : 0, id]
+    );
+
+    const updated = await db.get(
+      'SELECT * FROM tasks WHERE id = ?',
+      [id]
+    );
+
+    res.json(updated);
+  } catch (err) {
+    console.error('Error updating task:', err);
+    res.status(500).json({ error: 'Failed to update task' });
+  }
+});
+
+// GET /roadmaps/:id/tasks - fetch tasks for a roadmap
+app.get('/roadmaps/:id/tasks', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const tasks = await db.all(
+      'SELECT * FROM tasks WHERE roadmap_id = ?',
+      [id]
+    );
+    res.json(tasks);
+  } catch (err) {
+    console.error('Error fetching tasks:', err);
+    res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
+});
+
 
 // --- Start server ---
 app.listen(PORT, () => {
