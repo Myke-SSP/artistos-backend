@@ -4,12 +4,14 @@
   "description": "",
   "main": "server.js",
   "type": "module",
-    "scripts": {
+  "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  }
 }
-
