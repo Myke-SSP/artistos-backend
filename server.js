@@ -140,6 +140,68 @@ app.get('/roadmaps', (req, res) => {
   res.json(JSON.parse(row.json));
 });
 
+// PATCH /tasks/:id - toggle a task's completion
+app.patch('/tasks/:id', (req, res) => {
+  const { id } = req.params;
+  const { completed } = req.body; // expect true/false
+
+  try {
+    const stmt = db.prepare('UPDATE tasks SET completed = ? WHERE id = ?');
+    stmt.run(completed ? 1 : 0, id);
+
+    const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    res.json(updated);
+  } catch (err) {
+    console.error('Error updating task:', err.message);
+    res.status(500).json({ error: 'Failed to update task' });
+  }
+});
+// GET /roadmaps/:id - fetch roadmap with progress info
+app.get('/roadmaps/:id', (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Get roadmap record
+    const roadmap = db.prepare('SELECT * FROM roadmaps WHERE id = ?').get(id);
+
+    if (!roadmap) {
+      return res.status(404).json({ error: 'Roadmap not found' });
+    }
+
+    // Get all tasks for this roadmap
+    const tasks = db.prepare('SELECT * FROM tasks WHERE roadmap_id = ?').all(id);
+
+    const total = tasks.length;
+    const done = tasks.filter(t => t.completed).length;
+    const progress = total > 0 ? done / total : 0;
+
+    // Return roadmap with progress info
+    res.json({
+      ...roadmap,
+      total_tasks: total,
+      completed_tasks: done,
+      progress
+    });
+  } catch (err) {
+    console.error('Error fetching roadmap with progress:', err.message);
+    res.status(500).json({ error: 'Failed to fetch roadmap' });
+  }
+});
+
+// GET /roadmaps/:id/tasks - fetch tasks for a roadmap
+app.get('/roadmaps/:id/tasks', (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const stmt = db.prepare('SELECT * FROM tasks WHERE roadmap_id = ?');
+    const tasks = stmt.all(id);
+    res.json(tasks);
+  } catch (err) {
+    console.error('Error fetching tasks:', err.message);
+    res.status(500).json({ error: 'Failed to fetch tasks' });
+  }
+});
+
 
 // --- Start server ---
 app.listen(PORT, () => {
